@@ -1,0 +1,69 @@
+@echo off
+setlocal
+title GuvianEye - Quick Scan
+cd /d "%~dp0"
+chcp 65001 >nul
+set "PYTHONUTF8=1"
+set "PYTHONIOENCODING=utf-8"
+
+rem ---- 定位 python 解释器 (优先 PATH 中的 python, 其次 py 启动器) ----
+set "PYEXE="
+if not defined PYEXE (
+    where python >nul 2>nul && set "PYEXE=python"
+)
+if not defined PYEXE (
+    where py >nul 2>nul && set "PYEXE=py"
+)
+if not defined PYEXE (
+    echo.
+    echo   [!] 未找到 Python。请先安装 Python 3.8 以上版本, 装完重开本窗口。
+    echo.
+    pause
+    exit /b 1
+)
+
+rem ---- 动手前先确认两件事 ----
+echo ============================================================
+echo   GuvianEye  公网暴露面巡检  (一键扫描)
+echo ============================================================
+echo.
+echo   开始前请确认两件事:
+echo     1. 当前网络能到达你的目标资产; 到不了的先解决网络, 别白扫。
+echo     2. 若本次的执行网络和上次不同, 请先把 config.json 里的
+echo        baseline_label 改成对应名称 (office / mobile / cloud ...),
+echo        否则历史基线会与本次混在一起, 对比结论失真。
+echo.
+echo   也可以不做上面第 2 步, 改用命令行显式指定:
+echo       "%PYEXE%" scanner.py --label 网络名 --mail
+echo.
+pause
+
+echo.
+echo [第 1 步 / 共 2 步] 网络预检 (可达性 / RTT / 链路承载能力) ...
+echo.
+"%PYEXE%" scanner.py --preflight
+echo.
+echo ------------------------------------------------------------
+echo   预检结果怎么看:
+echo     - 大量目标显示"不可达"  =^>  当前网络到不了这些目标, 别急着重扫
+echo     - 出现本机 errno       =^>  连接太密, 先把 config.json 里的
+echo                                concurrency 调低(如 800) 再重试
+echo   预检通过时, 它会给出推荐的 concurrency / 超时, 可对照修改 config.json。
+echo ------------------------------------------------------------
+echo.
+set /p GO=确认继续全量扫描吗? 输入 Y 再回车, 直接回车退出: 
+if /i not "%GO%"=="Y" goto :end
+
+echo.
+echo [第 2 步 / 共 2 步] 全量扫描 (所有目标 x 65535 端口) ...
+echo   扫描过程中请不要关闭本窗口 —— 关了扫描就中断了。
+echo.
+"%PYEXE%" scanner.py --mail
+set RC=%errorlevel%
+echo.
+if "%RC%"=="3" echo   [!] 扫描完成, 但邮件发送失败, 请到 logs\console.log 查原因
+
+:end
+echo.
+echo 报告已保存到 reports\ 目录下。
+pause

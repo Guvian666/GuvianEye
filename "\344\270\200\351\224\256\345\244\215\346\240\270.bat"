@@ -1,0 +1,95 @@
+@echo off
+setlocal
+title GuvianEye - Port Verification
+cd /d "%~dp0"
+
+REM  Force a UTF-8 console so the Chinese output of the scanner is
+REM  rendered correctly instead of turning into mojibake under cp936.
+chcp 65001 >nul
+set "PYTHONUTF8=1"
+set "PYTHONIOENCODING=utf-8"
+
+REM ============================================================
+REM  One-click port verification
+REM  ------------------------------------------------------------
+REM  Pure ASCII on purpose: parses correctly under ANY Windows
+REM  code page (936 / 65001 ...). No PowerShell involved.
+REM
+REM  What it answers:
+REM    Your reference asset list (expected_ports.json) had ports
+REM    that the last scan did not find. Are those really closed,
+REM    or was that scan incomplete?
+REM
+REM  Why not telnet: a single telnet test that fails cannot tell you
+REM    whether (a) the port is closed, (b) the target rate-limits
+REM    your source IP, or (c) your current network cannot reach the
+REM    host at all. This tool always probes a control group at the
+REM    same moment, so it can tell those apart.
+REM
+REM  Usage:  one-click-verify.bat [baseline-label]
+REM ============================================================
+
+set "PYEXE="
+if not defined PYEXE (
+    where python >nul 2>nul && set "PYEXE=python"
+)
+if not defined PYEXE (
+    where py >nul 2>nul && set "PYEXE=py"
+)
+if not defined PYEXE (
+    echo.
+    echo   [!] Python not found. Please install Python 3.8+ and retry.
+    echo.
+    pause
+    exit /b 1
+)
+
+if not exist "scanner.py" (
+    echo.
+    echo   [!] scanner.py not found. Put this .bat in the scanner folder.
+    echo.
+    pause
+    exit /b 1
+)
+
+REM  Optional 1st argument = which baseline to compare against.
+REM   Default "default". Pass the label of whatever network ran
+REM   the last FULL scan (see your reports/ folder).
+set "FROM=default"
+if not "%~1"=="" set "FROM=%~1"
+
+echo.
+echo  ================================================================
+echo   Port verification
+echo   Ports present in your reference list but missing from the
+echo   last full scan - really closed, or just missed?
+echo  ================================================================
+echo.
+echo   Interpreter  : %PYEXE%
+echo   Compare with : latest_%FROM%.json
+echo.
+echo   NOTE: some hosts may NOT be reachable from your current
+echo   network. If several come back "unreachable", switch to your
+echo   phone hotspot and run this again - results from every network
+echo   get merged automatically, so each run can only ADD
+echo   confirmations.
+echo.
+echo   Takes about 30 seconds. The window stays open when finished.
+echo.
+
+"%PYEXE%" scanner.py --verify --verify-from %FROM% --verify-rounds 5 --verify-delay 2
+set "RC=%ERRORLEVEL%"
+
+echo.
+echo  ================================================================
+if "%RC%"=="0" (
+    echo   Done. Three files were written into the "reports" folder:
+    echo     - the newest .txt   full text of the screen output
+    echo     - verify_*.html     readable report with per-port verdicts
+    echo     - verify_*.json     raw data
+) else (
+    echo   [!] Exited with code %RC% - please copy the messages above.
+)
+echo  ================================================================
+echo.
+pause

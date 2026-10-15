@@ -1,0 +1,30 @@
+@echo off
+setlocal
+set "STARTUP=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
+set "KILLED="
+
+echo.
+if exist "%STARTUP%\GuvianEyeConsole.bat" (
+    del /q "%STARTUP%\GuvianEyeConsole.bat"
+    set "KILLED=1"
+)
+if exist "%STARTUP%\PublicExposureConsole.bat" (
+    del /q "%STARTUP%\PublicExposureConsole.bat"
+    set "KILLED=1"
+)
+
+echo.
+if not defined KILLED (
+    echo   [i] 当前没有设置开机自启, 无需取消。
+    echo.
+    pause
+    exit /b 0
+)
+echo   [OK] 已取消开机自启。
+echo        下次开机不会再自动启动控制台。
+echo        需要时双击「启动控制台.bat」即可。
+echo        注意: 当前已在运行的控制台进程不受影响,
+echo              如需立即停止, 关掉它的命令行窗口即可。
+echo.
+pause
+exit /b 0

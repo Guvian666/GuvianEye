@@ -1,0 +1,54 @@
+@echo off
+title GuvianEye Console
+setlocal
+cd /d "%~dp0"
+chcp 65001 >nul
+set "PYTHONUTF8=1"
+set "PYTHONIOENCODING=utf-8"
+
+rem ============================================================
+rem  公网暴露面巡检 · 启动本地控制台
+rem  双击本文件即可。启动后会自动打开浏览器。
+rem  可选参数:  --port 9000    --host 0.0.0.0    --no-browser
+rem
+rem  若控制台已在运行(例如已设置开机自启), 本脚本不会重复启动,
+rem  而是直接打开浏览器连到已在运行的那个实例。
+rem ============================================================
+
+if not defined PYEXE (
+    where python >nul 2>nul && set "PYEXE=python"
+)
+if not defined PYEXE (
+    where py >nul 2>nul && set "PYEXE=py"
+)
+if not defined PYEXE (
+    echo.
+    echo   [!] 未找到 Python。请先安装 Python 3.8 以上版本。
+    echo.
+    pause
+    exit /b 1
+)
+
+rem ---- 已有实例检测: 仅在未指定自定义端口时检查默认 8899 ----
+echo %* | findstr /C:"--port" >nul
+if not errorlevel 1 goto :launch
+
+"%PYEXE%" -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8899/api/health',timeout=2)" >nul 2>nul
+if not errorlevel 1 (
+    echo   检测到控制台已在运行, 直接为你打开浏览器 ...
+    start "" "http://127.0.0.1:8899"
+    exit /b 0
+)
+
+:launch
+echo   使用解释器: %PYEXE%
+"%PYEXE%" app.py %*
+
+set "RC=%ERRORLEVEL%"
+if not "%RC%"=="0" (
+    echo.
+    echo   [!] 控制台异常退出, 错误码 %RC%
+    echo.
+    pause
+)
+exit /b %RC%

@@ -1,0 +1,80 @@
+{
+  "targets_file": "targets.txt",
+  "baseline_label": "default",
+  "ports": {
+    "mode": "all",
+    "ranges": "",
+    "list": [],
+    "_comment": "mode 可选: all(1-65535 全量) / common(约615个高价值端口+业务端口) / web(Web与高危子集) / custom(用下面的 list 或 ranges)"
+  },
+  "scan": {
+    "concurrency": 1000,
+    "connect_timeout": 2.0,
+    "adaptive_timeout": true,
+    "min_timeout": 0.8,
+    "retry_filtered": 0,
+    "confirm_open": true,
+    "confirm_rounds": 3,
+    "host_discovery": true,
+    "icmp_check": true,
+    "skip_unreachable": false,
+    "rescan_filtered": 2,
+    "rescan_priority_rounds": 2,
+    "rescan_delay": 1.5,
+    "rescan_slowdown": 4,
+    "rescan_timeout_factor": 1.6,
+    "rescan_scope": "priority",
+    "shuffle_ports": true,
+    "post_rescan_rounds": 1,
+    "post_rescan_delay": 90,
+    "post_rescan_slowdown": 6,
+    "post_rescan_timeout_factor": 1.5,
+    "batch_size": 0,
+    "batch_gap": 0,
+    "banner_grab": true,
+    "tls_grab": true,
+    "banner_timeout": 2.5,
+    "anomaly_threshold": 500,
+    "unreachable_warn_ratio": 0.35,
+    "_comment_concurrency": "★ 「不被漏扫」最关键的一个旋钮。它决定每秒发出多少个 SYN: 速率 ≈ concurrency ÷ 实际超时。过高的并发会触发目标侧对源 IP 的探测限速, 表现为「明明开放却扫不出来」。默认 1000(≈500 SYN/s) 是准确性与耗时的折中; 若报告里『疑似漏报』持续偏多, 继续下调 (800 / 600), 耗时成比例增加。",
+    "_comment_shuffle": "★ shuffle_ports=true: 打乱端口扫描顺序。限速多半在累积若干 SYN 后才生效, 顺序扫会让 80 之后的端口整片丢失; 打乱后被丢的端口分散, 更容易被补扫捞回。",
+    "_comment_rescan": "★ 机内补扫(rescan_*): 每台主机主扫描跑完后, 对仍无响应的重点端口(common/web/业务端口共约615个, 含 443/8001/8008/8080/8443/8003/8012/8018/4430 等)降并发+拉长超时+多轮重探。",
+    "_comment_post_rescan": "★ 全局后置补扫(post_rescan_*): 所有目标的主扫描都结束后, 先冷却一段时间等限速窗口过去, 再对『业务端口集』做低速兜底。这是「只扫到 80、443 与高位业务端口整片丢失」这类漏报的直接对症手段。",
+    "_comment_post_rescan_tuning": "★ 轮数默认 1: 实测第 2 轮起基本挽回不到新端口, 却要把总时长成倍拉长。要用更多轮可临时加 --post-rounds 3。主扫描成果有 checkpoint 兜底, 不会丢。",
+    "_comment_confirm": "confirm_rounds=二次确认轮数, 只要任一轮收到 SYN-ACK 即保留(避免限速把真实开放端口误删)。已从 2 提到 3。",
+    "_comment_batch": "分批执行(batch_size/batch_gap): 目前是 0=不分批。注意 —— 分批会把「同时扫描的主机数」降到 batch_size 台, 并发总量和探测速率按比例下降, 触发限速的概率更低, 但总耗时基本按「目标总数 ÷ 每批台数」的倍数增加。只有当你想进一步降载、且不介意等几倍时间时才用。",
+    "_time_estimate": "全量(默认 10 台 x 65535 端口, concurrency=1000): 约 25~40 分钟; 想先验证网络与流量开销, 先跑 --mode common(约 600 端口, 每台约 1 分钟)。",
+    "_profile": "★ 默认预设: 通用/办公网。换执行网络(如手机热点)后, 第一件事是跑 python scanner.py --preflight 并按其建议调整。"
+  },
+  "verify": {
+    "from_label": "default",
+    "rounds": 5,
+    "delay": 2.0,
+    "after_scan": false,
+    "_comment": "定向复核(verify): 复核「历史基线清单里有、上一轮却没扫到」的端口。from_label=对照哪份基线(上一轮扫描用的 --label); rounds=复核轮数; delay=轮间隔秒; after_scan=是否在扫描结束后自动接跑(界面上也有同名勾选框)。"
+  },
+  "ui": {
+    "auto_exit_after_scan": false,
+    "auto_exit_delay": 8,
+    "_comment": "控制台窗口与扫描收尾行为。auto_exit_after_scan: 扫描完成后自动关闭控制台; auto_exit_delay: 自动关窗前的缓冲秒数; skip_rescan: 跳过全部补扫(机内+后置), 只跑一遍主扫描 —— 仅测试用, 会降低准确性。",
+    "skip_rescan": false
+  },
+  "report": {
+    "dir": "reports",
+    "baseline_dir": "baseline",
+    "keep_reports": 30,
+    "title": "公网暴露面巡检报告"
+  },
+  "mail": {
+    "enabled": false,
+    "smtp_host": "smtp.qq.com",
+    "smtp_port": 465,
+    "use_ssl": true,
+    "sender": "",
+    "auth_code": "",
+    "recipients": [],
+    "send_when_changed_only": false,
+    "_comment": "收件人与授权码留空, 由使用者自行填写。QQ 邮箱需要的是 SMTP 授权码(16位), 不是登录密码。"
+  },
+  "_baseline_label_note": "★ 基线按「执行网络」分档。同一批 IP 从不同网络扫出来的可达性完全不同, 请为每个网络用各自的标签(--label), 否则会把网络差异误判成端口新增/消失。"
+}

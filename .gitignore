@@ -1,0 +1,32 @@
+# ---- 运行产物 (每次扫描都会生成, 不进版本库) ----
+reports/*
+!reports/.gitkeep
+baseline/*
+!baseline/.gitkeep
+logs/*
+!logs/.gitkeep
+*.log
+
+# ---- 个人配置: 含真实资产清单与邮箱凭据, 绝对不能提交 ----
+config.json
+expected_ports.json
+targets.local.txt
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# ---- 编辑器 / 操作系统 ----
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini

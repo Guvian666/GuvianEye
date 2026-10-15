@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GuvianEye · 公网暴露面巡检控制台</title>
+<style>
+:root{
+  --bg:#f2f5f9; --card:#fff; --line:#dde5ee; --line2:#eef3f8;
+  --txt:#111c2b; --txt2:#3d4d5e; --muted:#6b7b8d;
+  --accent:#0b5fa5; --accent2:#1478c9;
+  --red:#cf2b1f; --red-soft:#fdecea; --red-line:#f3b7b1;
+  --org:#c26a02; --org-soft:#fff4e6; --org-line:#f2cd9b;
+  --grn:#0a7a4a; --grn-soft:#e8f7ef; --grn-line:#b8e3cc;
+  --blu:#1468cc; --blu-soft:#eaf2ff;
+  --shadow:0 1px 3px rgba(16,32,48,.05),0 8px 24px -18px rgba(16,32,48,.22);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);
+  font-family:"Microsoft YaHei","PingFang SC","Segoe UI",Roboto,Arial,sans-serif;
+  font-size:13.5px;line-height:1.65}
+.wrap{max-width:1320px;margin:0 auto;padding:20px 20px 60px}
+
+/* 顶栏 */
+.top{background:linear-gradient(118deg,#08345c,#0b5fa5 60%,#1a86cf);color:#fff;
+  border-radius:13px;padding:18px 24px;display:flex;align-items:center;gap:16px;
+  box-shadow:0 10px 30px -14px rgba(8,52,92,.55);position:relative;overflow:hidden}
+.top::after{content:"";position:absolute;right:-60px;top:-80px;width:240px;height:240px;
+  border-radius:50%;background:rgba(255,255,255,.07)}
+.top h1{margin:0;font-size:18px;font-weight:700;letter-spacing:.5px}
+.top .sub{font-size:11.5px;opacity:.85;margin-top:2px}
+.top .right{margin-left:auto;display:flex;align-items:center;gap:10px;position:relative}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:20px;
+  font-size:12px;font-weight:600;background:rgba(255,255,255,.18);
+  border:1px solid rgba(255,255,255,.32)}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:#7be0a5}
+.pill.busy .dot{background:#ffd166;animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.25}}
+
+/* 导航 */
+nav{display:flex;gap:8px;margin:16px 0 14px;flex-wrap:wrap}
+nav button{border:1px solid var(--line);background:#fff;padding:9px 20px;border-radius:9px;
+  font-size:13.5px;cursor:pointer;color:var(--txt2);font-family:inherit;font-weight:600;
+  transition:.13s;box-shadow:var(--shadow)}
+nav button:hover{border-color:#b9cde0;background:#fafcff}
+nav button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+nav button .badge-dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--red);margin-left:7px;vertical-align:2px}
+
+/* 卡片 */
+section.box{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:18px 20px;margin-bottom:14px;box-shadow:var(--shadow)}
+section.box>h2{margin:0 0 14px;font-size:15px;display:flex;align-items:center;gap:9px;font-weight:700}
+section.box>h2::before{content:"";width:3px;height:15px;border-radius:2px;
+  background:linear-gradient(180deg,var(--accent2),var(--accent));flex:none}
+section.box>h2 .hint{font-size:12px;font-weight:400;color:var(--muted);margin-left:auto}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+
+label.f{display:block;font-size:12.5px;color:var(--txt2);margin-bottom:6px;font-weight:600}
+input[type=text],input[type=password],input[type=number],input[type=time],select,textarea{
+  width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px;
+  font-family:inherit;color:var(--txt);background:#fff;outline:none;transition:.12s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent2);
+  box-shadow:0 0 0 3px rgba(20,120,201,.12)}
+textarea{resize:vertical;min-height:270px;font-family:Consolas,Monaco,monospace;
+  font-size:12.5px;line-height:1.8}
+.row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:13px}
+.row>div{flex:1;min-width:150px}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt2);
+  cursor:pointer;user-select:none}
+.chk input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+.chk.danger{color:var(--red)}
+.chk.danger input{accent-color:var(--red)}
+
+button.btn{border:0;border-radius:9px;padding:10px 22px;font-size:13.5px;cursor:pointer;
+  font-family:inherit;font-weight:700;transition:.13s;background:var(--accent);color:#fff}
+button.btn:hover{background:#0a4f8a}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+button.btn.ghost{background:#fff;color:var(--accent);border:1px solid #bcd5ea}
+button.btn.ghost:hover{background:var(--blu-soft)}
+button.btn.danger{background:var(--red)} button.btn.danger:hover{background:#b02218}
+button.btn.sm{padding:7px 14px;font-size:12.5px}
+.btns{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* 进度 */
+.prog-outer{height:12px;background:#e6edf5;border-radius:7px;overflow:hidden;margin:6px 0 10px}
+.prog-inner{height:100%;width:0;border-radius:7px;
+  background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .3s}
+/* 主扫描已完成、正在补扫: 条纹流动 + 橙色, 明确表示"还没结束, 仍在工作" */
+.prog-inner.finishing{background:repeating-linear-gradient(45deg,#f0a24b 0 10px,#e67e22 10px 20px);
+  background-size:28px 28px;animation:stripe 1s linear infinite}
+@keyframes stripe{from{background-position:0 0}to{background-position:28px 0}}
+/* 扫描期间的常驻警告条: 防止用户关掉控制台窗口导致扫描中断(实测踩过) */
+.winwarn{background:#fff4e0;border:1px solid #f0a24b;border-left:5px solid #e67e22;
+  border-radius:10px;padding:13px 18px;margin-bottom:16px;color:#7a3d00;font-size:14px;
+  line-height:1.6}
+.winwarn b{color:#a04000;font-size:15px}
+.winwarn .wsub{margin-top:5px;font-size:12.5px;color:#8a5a20;line-height:1.7}
+.winwarn code{background:#fde8cc;padding:1px 6px;border-radius:4px;
+  font-family:Consolas,Monaco,monospace;font-size:12px;color:#7a3d00}
+@keyframes winpulse{0%,100%{border-left-color:#e67e22}50%{border-left-color:#ffb84d}}
+.winwarn{animation:winpulse 2.2s ease-in-out infinite}
+.hide{display:none !important}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;
+  margin-bottom:12px}
+.stat{background:#f8fbfe;border:1px solid var(--line);border-radius:9px;padding:10px 13px}
+.stat .k{font-size:11.5px;color:var(--muted)}
+.stat .v{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent)}
+.log{background:#0e1a26;color:#c7d6e5;border-radius:9px;padding:12px 14px;height:250px;
+  overflow-y:auto;font-family:Consolas,Monaco,monospace;font-size:12px;line-height:1.8;
+  white-space:pre-wrap;word-break:break-all}
+.log .warn{color:#ffc46b} .log .err{color:#ff8b80} .log .ok{color:#7be0a5}
+
+/* KPI */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+  box-shadow:var(--shadow);position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#cbd8e6}
+.card.c-red::before{background:var(--red)} .card.c-org::before{background:var(--org)}
+.card.c-grn::before{background:var(--grn)} .card.c-blu::before{background:var(--blu)}
+.card .k{font-size:11.5px;color:var(--muted);margin-bottom:6px}
+.card .v{font-size:24px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums}
+.card .s{font-size:11px;color:var(--muted);margin-top:4px}
+.card.c-red .v{color:var(--red)} .card.c-org .v{color:var(--org)}
+.card.c-grn .v{color:var(--grn)} .card.c-blu .v{color:var(--blu)}
+
+.alert{border-radius:9px;padding:11px 14px;margin-bottom:9px;border-left:4px solid;font-size:12.5px}
+.alert.warn{background:var(--org-soft);border-color:var(--org)}
+.alert.bad{background:var(--red-soft);border-color:var(--red)}
+.alert.ok{background:var(--grn-soft);border-color:var(--grn)}
+.alert.info{background:var(--blu-soft);border-color:var(--blu)}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:#f6f9fc;text-align:left;padding:9px 11px;font-weight:700;color:var(--txt2);
+  border-bottom:2px solid var(--line);white-space:nowrap}
+td{padding:8px 11px;border-bottom:1px solid var(--line2)}
+tbody tr:hover{background:#f3f8fd}
+.mono{font-family:Consolas,Monaco,monospace}
+.tag{display:inline-block;padding:1px 8px;border-radius:5px;font-size:11px;font-weight:700}
+.t-CRITICAL{background:var(--red-soft);color:#9c1f16;border:1px solid var(--red-line)}
+.t-HIGH{background:var(--org-soft);color:#9a4a02;border:1px solid var(--org-line)}
+.t-MEDIUM{background:var(--blu-soft);color:#124f9e;border:1px solid #c0d8f7}
+.t-LOW{background:#f1f5f9;color:#556274;border:1px solid #dde4ec}
+.t-new{background:var(--red);color:#fff}
+.rm{display:flex;gap:12px;padding:11px 13px;border:1px solid var(--line);border-radius:9px;
+  margin-bottom:8px;align-items:flex-start;background:#fff}
+.rm.cri{border-left:4px solid var(--red)} .rm.hig{border-left:4px solid var(--org)}
+.rm .p{font-family:Consolas,Monaco,monospace;font-weight:800;min-width:56px;flex:none}
+.rm .act{font-weight:700;margin-bottom:2px}
+.rm .why{font-size:12px;color:var(--muted)}
+.rm .who{font-family:Consolas,Monaco,monospace;font-size:11.5px;color:var(--muted);
+  margin-left:auto;flex:none;text-align:right}
+.muted{color:var(--muted)}
+.empty{padding:26px;text-align:center;color:var(--muted)}
+.hide{display:none!important}
+.toast{position:fixed;right:22px;bottom:22px;z-index:200;display:flex;flex-direction:column;gap:9px}
+.toast .m{background:#fff;border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:9px;padding:11px 16px;box-shadow:0 10px 30px -12px rgba(16,32,48,.4);
+  font-size:13px;max-width:400px;animation:sl .22s}
+.toast .m.err{border-left-color:var(--red)} .toast .m.ok{border-left-color:var(--grn)}
+@keyframes sl{from{transform:translateX(18px);opacity:0}}
+.kv{display:flex;gap:10px;font-size:12.5px;padding:6px 0;border-bottom:1px dashed var(--line2)}
+.kv .k{color:var(--muted);min-width:110px;flex:none}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);
+  border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="winWarn" class="winwarn hide">
+    <b>扫描进行中 —— 请勿关闭启动控制台的黑色窗口</b>
+    <div class="wsub">关闭它 = 扫描立即中断，本次成果将丢失（主扫描成果已自动存档，可用
+      <code>python scanner.py --from-checkpoint latest</code> 恢复）。
+      也别让电脑进入睡眠。</div>
+  </div>
+
+  <div class="top">
+    <div>
+      <h1>GuvianEye <span style="font-weight:400;opacity:.82">公网暴露面巡检控制台</span></h1>
+      <div class="sub">GuvianEye · Public Exposure Scanner · 本机运行 · 数据不出网</div>
+    </div>
+    <div class="right">
+      <span class="pill" id="statusPill"><span class="dot"></span><span id="statusTxt">空闲</span></span>
+    </div>
+  </div>
+
+  <nav>
+    <button data-tab="scan" class="on">扫描</button>
+    <button data-tab="result">结果<span class="badge-dot hide" id="resDot"></span></button>
+    <button data-tab="history">历史</button>
+    <button data-tab="settings">设置</button>
+  </nav>
+
+  <!-- ================= 扫描 ================= -->
+  <div id="tab-scan">
+    <div class="two">
+      <section class="box">
+        <h2>目标清单<span class="hint" id="tgtHint">—</span></h2>
+        <textarea id="targets" spellcheck="false"
+          placeholder="每行一个，支持三种写法：
+192.0.2.144            单个地址
+198.51.100.0/24           CIDR 网段
+198.51.100.1-50           区间（尾段简写）
+198.51.100.1-198.51.100.50  区间（两端写全）
+# 开头为注释，也可用逗号/空格分隔多个"></textarea>
+        <div class="hint" style="margin-top:9px;line-height:1.7">
+          <b>网段会自动展开成具体 IP。</b>单条表达式最多展开 <b id="expLimit">4096</b> 个地址，
+          整个清单最多 <b id="totLimit">20000</b> 个 —— 防止手滑写个 <code>/8</code>
+          当场生成上千万目标把本机拖死。需要更大的网段请拆开写。
+        </div>
+        <div class="btns" style="margin-top:11px">
+          <button class="btn ghost sm" onclick="saveTargets()">保存清单</button>
+          <button class="btn ghost sm" onclick="loadTargets()">重新载入</button>
+          <span class="muted" style="font-size:12px">仅可扫描自有或已获授权的资产</span>
+        </div>
+      </section>
+
+      <div>
+        <section class="box">
+          <h2>扫描设置</h2>
+          <div class="row">
+            <div>
+              <label class="f">端口范围</label>
+              <select id="mode" onchange="onModeChange()">
+                <option value="all">全量 65535 端口（约 10~13 分钟）</option>
+                <option value="common">常用高价值端口（约 600 个，1 分钟内）</option>
+                <option value="web">Web 与高危端口（最快）</option>
+                <option value="custom">自定义端口表达式</option>
+              </select>
+            </div>
+            <div>
+              <label class="f">基线标签（按执行网络分档）</label>
+              <input type="text" id="label" placeholder="例如 jumphost / office">
+            </div>
+          </div>
+          <div class="row hide" id="exprRow">
+            <div>
+              <label class="f">端口表达式</label>
+              <input type="text" id="expr" placeholder="例如 1-1024,3306,6379,27017">
+            </div>
+          </div>
+          <div class="btns">
+            <label class="chk"><input type="checkbox" id="mailChk"> 扫描完发邮件</label>
+            <label class="chk"><input type="checkbox" id="dryChk"> 仅演练（不发包）</label>
+            <label class="chk"><input type="checkbox" id="verifyChk"> 扫描后自动复核漏报端口</label>
+            <label class="chk"><input type="checkbox" id="autoExitChk"> 扫描完成后自动关闭控制台</label>
+          </div>
+          <div class="btns" style="margin-top:9px">
+            <label class="chk danger"><input type="checkbox" id="skipRescanChk"> 跳过补扫（测试用：更快，但可能漏扫）</label>
+          </div>
+          <div class="hint" style="margin-top:8px;line-height:1.65">
+            <b>补扫</b>是「主扫描跑完后，对仍无响应的重点端口降速重探」的兜底动作，分两层：<br>
+            · <b>机内补扫</b>：每台主机主扫描刚结束就补一遍（重点端口约 600 个）<br>
+            · <b>后置补扫</b>：所有主机跑完后，冷却 90 秒再对业务端口低速兜底一次<br>
+            它们是<b>准确性的主力</b>（10-14 实测机内补扫独自挽回 24 个开放端口）。<br>
+            只有在<b>测链路、试参数、赶时间</b>时才勾「跳过补扫」——勾了会只跑一遍主扫描，
+            弱网或被限速时 443 等端口可能被漏掉，报告里会打红字提醒。<br>
+            <b>「扫描后自动复核」不是补扫</b>：它是拿历史清单（expected_ports.json）比对，
+            只重探「上次有、这次没扫到」的那几个端口，属于事后仲裁。<br>
+            <b>窗口能不能关？</b>扫描<b>进行中请勿关闭</b>黑窗口（关掉＝进程死亡、扫描立即中断）；
+            扫描完成后窗口标题会变成「可以安全关闭」。勾上「自动关闭控制台」则跑完缓冲几秒后
+            自动关窗，适合无人值守。
+          </div>
+        </section>
+
+        <section class="box" style="border-color:#f0c98a;background:#fffaf1">
+          <h2>① 换网络后先做：网络预检 <span class="hint">不扫业务端口，只测链路</span></h2>
+          <div class="hint" style="margin-bottom:12px;line-height:1.7">
+            换了执行网络（如切到手机热点）之后，先用它跑一遍：会实测各目标在当前网络下
+            <b>能不能通、RTT 多少、出口链路能扛多大并发</b>，并直接给出推荐的并发 / 超时
+            / 预计耗时。<b>跑完再决定要不要全量扫描</b>，避免白等半小时才发现网络不对。
+          </div>
+          <div class="btns">
+            <button class="btn" id="preBtn" onclick="runPreflight()">开始网络预检</button>
+          </div>
+        </section>
+
+        <section class="box">
+          <h2>② 执行扫描</h2>
+          <div class="btns" style="margin-bottom:14px">
+            <button class="btn" id="startBtn" onclick="startScan()">开始扫描</button>
+            <button class="btn danger hide" id="stopBtn" onclick="stopScan()">中止扫描</button>
+          </div>
+          <div class="prog-outer"><div class="prog-inner" id="progBar"></div></div>
+          <div class="stats">
+            <div class="stat"><div class="k">进度</div><div class="v" id="sPct">0%</div></div>
+            <div class="stat"><div class="k">速度</div><div class="v" id="sRate">0/s</div></div>
+            <div class="stat"><div class="k">已发现开放</div><div class="v" id="sOpen">0</div></div>
+            <div class="stat"><div class="k">已用时</div><div class="v" id="sElapsed">0s</div></div>
+            <div class="stat"><div class="k">预计剩余</div><div class="v" id="sEta">—</div></div>
+          </div>
+          <h2 style="margin-top:16px">实时日志</h2>
+          <div class="log" id="log"></div>
+        </section>
+
+        <section class="box" style="border-color:#c9dff5;background:#f7fbff">
+          <h2>③ 定向复核 <span class="hint">复核「历史清单里有、本轮没扫到」的端口</span></h2>
+          <div class="hint" style="margin-bottom:12px;line-height:1.7">
+            扫描漏报最集中的地方，就是「历史基线清单里有、这一轮却没扫到」的那批端口 ——
+            它们既可能是真的关闭了，也可能是被源 IP 限速吞掉的漏报。复核用
+            <b>极低并发（单机 4 连接）+ 多轮重探 + 对照组</b>，专门把这两种情况分开，
+            给出「真关闭 / 真开放 / 仍然无法判定」的明确结论。
+          </div>
+          <div class="row">
+            <div>
+              <label class="f">对照基线（上一轮用的标签）</label>
+              <input type="text" id="vFrom" placeholder="default / mobile / office">
+            </div>
+            <div>
+              <label class="f">复核轮数（越多越准，越慢）</label>
+              <input type="number" id="vRounds" min="1" max="20" value="5">
+            </div>
+          </div>
+          <div class="btns">
+            <button class="btn" id="verBtn" onclick="runVerify()">立即定向复核</button>
+            <span class="muted" style="font-size:12px">
+              结果见上方「实时日志」，同时会另存一份 txt 到 reports/</span>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 结果 ================= -->
+  <div id="tab-result" class="hide">
+    <div id="resEmpty" class="box"><div class="empty">还没有扫描记录。到「扫描」页开始第一次巡检。</div></div>
+    <div id="resBody" class="hide">
+      <section class="box">
+        <h2>最近一次扫描<span class="hint" id="resMeta"></span></h2>
+        <div class="btns">
+          <button class="btn" onclick="openReport()">查看完整报告</button>
+          <button class="btn ghost" onclick="openDir('reports')">打开报告目录</button>
+        </div>
+      </section>
+      <div class="cards" id="resCards" style="margin-bottom:14px"></div>
+      <section class="box" id="resWarnBox"><h2>提示</h2><div id="resWarn"></div></section>
+      <section class="box hide" id="resQBox"><h2>探测质量与漏报自查</h2><div id="resQuality"></div></section>
+      <section class="box hide" id="resEBox"><h2>与历史清单对照 <span class="hint" style="font-weight:400">历史基线清单 · 本次是不是又漏扫了</span></h2><div id="resExpected"></div></section>
+      <section class="box hide" id="resMailBox"><h2>邮件推送</h2><div id="resMail"></div></section>
+      <section class="box">
+        <h2>高危端口处置建议<span class="hint" id="fixCnt"></span></h2>
+        <div id="resFix"></div>
+      </section>
+      <section class="box">
+        <h2>本周新增开放端口<span class="hint" id="newCnt"></span></h2>
+        <div id="resNew"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ================= 历史 ================= -->
+  <div id="tab-history" class="hide">
+    <section class="box">
+      <h2>开放端口周度趋势<span class="hint">当前标签</span></h2>
+      <div id="trendBox" style="overflow-x:auto"></div>
+    </section>
+    <section class="box">
+      <h2>历史扫描记录<span class="hint" id="histHint"></span></h2>
+      <div style="overflow-x:auto"><table id="histTable">
+        <thead><tr><th>扫描时间</th><th>基线标签</th><th>端口范围</th><th>开放端口</th>
+        <th>严重/高危</th><th>新增</th><th>消失</th><th>无响应</th><th>耗时</th><th>报告</th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <!-- ================= 设置 ================= -->
+  <div id="tab-settings" class="hide">
+    <section class="box">
+      <h2>邮件推送<span class="hint" id="mailState"></span></h2>
+      <div class="row">
+        <div><label class="f">SMTP 服务器</label><input type="text" id="mHost" placeholder="smtp.qq.com"></div>
+        <div><label class="f">端口</label><input type="number" id="mPort" placeholder="465"></div>
+        <div><label class="f">发件邮箱</label><input type="text" id="mSender" placeholder="your-name@qq.com"></div>
+      </div>
+      <div class="row">
+        <div><label class="f">SMTP 授权码（不是登录密码）</label>
+          <input type="password" id="mAuth" placeholder="留空表示不修改已保存的授权码"></div>
+        <div><label class="f">收件人（多个用逗号分隔）</label>
+          <input type="text" id="mTo" placeholder="your-name@qq.com"></div>
+      </div>
+      <div class="btns">
+        <label class="chk"><input type="checkbox" id="mEnabled"> 扫描后自动发邮件</label>
+        <label class="chk"><input type="checkbox" id="mChanged"> 仅在发现变化时发送</label>
+        <label class="chk"><input type="checkbox" id="mSsl"> 使用 SSL（465 端口）</label>
+      </div>
+      <div class="btns" style="margin-top:13px">
+        <button class="btn" onclick="saveMail()">保存邮件设置</button>
+        <button class="btn ghost" onclick="testMail()">发送测试邮件</button>
+      </div>
+      <div class="alert info" style="margin-top:13px">
+        QQ 邮箱授权码获取：QQ邮箱 → 设置 → 账户 → POP3/IMAP/SMTP服务 → 开启 → 生成授权码。
+        填的是这串授权码，<b>不是 QQ 登录密码</b>。
+      </div>
+    </section>
+
+    <section class="box">
+      <h2>每周定时任务<span class="hint" id="taskState">检测中…</span></h2>
+      <div class="row">
+        <div><label class="f">星期</label>
+          <select id="tDay">
+            <option value="MON">周一</option><option value="TUE">周二</option>
+            <option value="WED">周三</option><option value="THU">周四</option>
+            <option value="FRI">周五</option><option value="SAT">周六</option>
+            <option value="SUN">周日</option>
+          </select></div>
+        <div><label class="f">执行时间</label><input type="time" id="tTime" value="09:00"></div>
+        <div><label class="f">扫描模式</label>
+          <select id="tMode">
+            <option value="all">全量 65535 端口</option>
+            <option value="common">常用端口</option>
+            <option value="web">Web 与高危端口</option>
+          </select></div>
+      </div>
+      <div class="btns">
+        <button class="btn" onclick="regTask()">注册 / 更新定时任务</button>
+        <button class="btn ghost" onclick="delTask()">删除定时任务</button>
+      </div>
+      <div class="alert warn" style="margin-top:13px">
+        定时任务由 Windows 任务计划程序执行，<b>扫描时的网络取决于当时本机所处的网络</b>。
+        如果你的机器会在办公网与公网环境之间切换，建议固定用同一个基线标签，或把本工具
+        部署到出口固定的机器上。
+      </div>
+    </section>
+
+    <section class="box">
+      <h2>高级扫描参数</h2>
+      <div class="row">
+        <div><label class="f">全局并发</label><input type="number" id="aConc" min="200" max="12000"></div>
+        <div><label class="f">最大超时（秒）</label><input type="number" id="aTimeout" step="0.1" min="0.3" max="10"></div>
+        <div><label class="f">自适应超时下限（秒）</label><input type="number" id="aMin" step="0.1" min="0.2" max="5"></div>
+      </div>
+      <div class="btns">
+        <label class="chk"><input type="checkbox" id="aAdaptive"> 启用自适应超时（用实测 RTT 收紧，提速关键）</label>
+        <label class="chk"><input type="checkbox" id="aConfirm"> 开放端口二次确认（防误报）</label>
+        <label class="chk"><input type="checkbox" id="aBanner"> 抓取服务指纹 / 横幅</label>
+      </div>
+      <div class="btns" style="margin-top:13px">
+        <button class="btn" onclick="saveAdvanced()">保存高级参数</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let CFG=null, LAST=null, POLL=null, MAIL=null, WAS_BUSY=false;
+
+function toast(msg,type){
+  const d=document.createElement('div');
+  d.className='m '+(type||'');
+  d.textContent=msg;
+  $('toast').appendChild(d);
+  setTimeout(()=>{d.style.opacity='0';d.style.transition='.3s';
+    setTimeout(()=>d.remove(),300);},3600);
+}
+async function api(path,body){
+  const opt=body?{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)}:{};
+  const r=await fetch(path,opt);
+  let j={}; try{j=await r.json();}catch(e){}
+  if(!r.ok||j.ok===false)throw new Error(j.error||('HTTP '+r.status));
+  return j;
+}
+function fmt(n){return (n==null?'—':Number(n).toLocaleString());}
+
+/* ---------------- Tab ---------------- */
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    ['scan','result','history','settings'].forEach(t=>
+      $('tab-'+t).classList.toggle('hide', t!==b.dataset.tab));
+    if(b.dataset.tab==='history')loadHistory();
+  };
+});
+
+/* ---------------- 目标清单 ---------------- */
+async function loadTargets(){
+  try{
+    const j=await api('/api/targets');
+    $('targets').value=j.content||'';
+    countTargets();
+  }catch(e){toast('载入目标失败: '+e.message,'err');}
+}
+/* 前端预估展开数量, 让输入时的提示和后端真实解析对齐
+   (不这样做的话 198.51.100.0/24 会被算成 1 个目标, 严重误导) */
+function ipToInt(s){
+  const m=/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(s);
+  if(!m)return null;
+  const o=[+m[1],+m[2],+m[3],+m[4]];
+  if(o.some(v=>v>255))return null;
+  return ((o[0]*16777216)+(o[1]*65536)+(o[2]*256)+o[3])>>>0;
+}
+function tokenCount(tok){
+  if(tok.includes('/')){
+    const m=/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/(\d{1,2})$/.exec(tok);
+    if(!m)return null;
+    if(ipToInt(m[1])===null)return null;
+    const p=+m[2];
+    if(p<0||p>32)return null;
+    const n=Math.pow(2,32-p);
+    return p>=31?n:Math.max(0,n-2);
+  }
+  if(tok.includes('-')){
+    const i=tok.indexOf('-');
+    const a=tok.slice(0,i).trim(), b=tok.slice(i+1).trim();
+    let ai=ipToInt(a); if(ai===null)return null;
+    let bi;
+    if(/^\d{1,3}$/.test(b)){ bi=ipToInt(a.slice(0,a.lastIndexOf('.')+1)+b); }
+    else bi=ipToInt(b);
+    if(bi===null)return null;
+    if(ai>bi){const t=ai;ai=bi;bi=t;}
+    return bi-ai+1;
+  }
+  return ipToInt(tok)===null?null:1;
+}
+function countTargets(){
+  const lines=$('targets').value.split('\n')
+    .map(s=>s.split('#')[0].trim()).filter(s=>s);
+  const seen=new Set();
+  let total=0, bad=0, ranges=0;
+  lines.forEach(l=>l.split(/[\s,]+/).forEach(x=>{
+    if(!x||seen.has(x))return;
+    seen.add(x);
+    const c=tokenCount(x);
+    if(c===null){bad++;return;}
+    total+=c;
+    if(c>1)ranges++;
+  }));
+  let txt;
+  if(!seen.size)txt='尚未填写目标';
+  else{
+    txt='共 '+total+' 个目标';
+    if(ranges)txt+='（含 '+ranges+' 个网段/区间，已展开）';
+    if(bad)txt+=' ｜ '+bad+' 条无法解析';
+  }
+  $('tgtHint').textContent=txt;
+}
+$('targets').addEventListener('input',countTargets);
+
+async function saveTargets(){
+  try{
+    const j=await api('/api/targets',{content:$('targets').value});
+    toast('已保存，解析到 '+j.count+' 个有效 IP','ok');
+    countTargets();
+  }catch(e){toast('保存失败: '+e.message,'err');}
+}
+
+/* ---------------- 配置 ---------------- */
+async function loadConfig(){
+  const j=await api('/api/config');
+  CFG=j.config;
+  const m=CFG.mail||{}, s=CFG.scan||{}, p=CFG.ports||{}, v=CFG.verify||{};
+  $('mode').value=p.mode||'all';
+  $('expr').value=p.ranges||'';
+  $('label').value=CFG.baseline_label||'default';
+  onModeChange();
+  $('mailChk').checked=!!m.enabled;
+  /* 复核相关: 勾选项 + 对照基线 + 轮数 */
+  $('verifyChk').checked=!!v.after_scan;
+  $('vFrom').value=v.from_label||'default';
+  $('vRounds').value=v.rounds||5;
+  /* 窗口行为: 完成后是否自动退出控制台 */
+  $('autoExitChk').checked=!!((CFG.ui||{}).auto_exit_after_scan);
+  /* 补扫开关: 勾了本次只跑一遍主扫描 */
+  $('skipRescanChk').checked=!!((CFG.ui||{}).skip_rescan);
+  if(CFG.max_expand_per_token)$('expLimit').textContent=fmt(CFG.max_expand_per_token);
+  if(CFG.max_total_targets)$('totLimit').textContent=fmt(CFG.max_total_targets);
+  $('mHost').value=m.smtp_host||''; $('mPort').value=m.smtp_port||465;
+  $('mSender').value=m.sender||'';
+  $('mTo').value=(m.recipients||[]).join(', ');
+  $('mEnabled').checked=!!m.enabled;
+  $('mChanged').checked=!!m.send_when_changed_only;
+  $('mSsl').checked=m.use_ssl!==false;
+  $('mailState').textContent=m.auth_code_set?'已配置授权码':'未配置授权码';
+  $('aConc').value=s.concurrency||4000;
+  $('aTimeout').value=s.connect_timeout||1.2;
+  $('aMin').value=s.min_timeout||0.5;
+  $('aAdaptive').checked=s.adaptive_timeout!==false;
+  $('aConfirm').checked=s.confirm_open!==false;
+  $('aBanner').checked=s.banner_grab!==false;
+}
+function onModeChange(){
+  $('exprRow').classList.toggle('hide',$('mode').value!=='custom');
+}
+
+/* ---------------- 扫描 ---------------- */
+async function startScan(){
+  const mode=$('mode').value, expr=$('expr').value.trim();
+  if(mode==='custom'&&!expr){toast('请填写端口表达式','err');return;}
+  // 开扫前把「耗时 + 不能关窗口」讲清楚 —— 实测踩过"关窗导致 77 分钟成果丢失"的坑
+  if(mode==='all'&&!$('dryChk').checked){
+    const _skip=$('skipRescanChk').checked;
+    const ok=confirm(
+      '即将开始全量扫描（全端口）。\n\n'+
+      '· 预计耗时 '+( _skip?'约 30~40 分钟（已跳过补扫，更快）':'35~45 分钟' )+
+      '，期间不要关闭控制台的黑色窗口\n'+
+      '· 关闭窗口 = 扫描立即中断\n'+
+      '· 主扫描成果会自动存档，万一中断可用 --from-checkpoint 恢复\n'+
+      '· 建议同时让电脑保持唤醒，不要进入睡眠\n\n'+
+      '确认开始？');
+    if(!ok)return;
+  }
+  // 勾了「跳过补扫」就明确警告一次 —— 这是拿准确性换速度
+  if($('skipRescanChk').checked && !$('dryChk').checked){
+    const ok3=confirm(
+      '你勾选了「跳过补扫」。\n\n'+
+      '· 本次只跑一遍主扫描，不再做机内补扫与后置补扫\n'+
+      '· 速度更快（全量约省 5~8 分钟）\n'+
+      '· 代价：弱网或被目标侧限速时，443 等真实开放端口可能被漏掉\n'+
+      '· 报告顶部会打红字提醒，结果**不建议**直接当作巡检结论\n\n'+
+      '确认用「跳过补扫」模式开始？');
+    if(!ok3)return;
+  }
+  // 勾了「自动关闭控制台」就再确认一次 —— 关窗后 Web 页面会一起失效
+  if($('autoExitChk').checked){
+    const ok2=confirm(
+      '你勾选了「扫描完成后自动关闭控制台」。\n\n'+
+      '· 扫描完成后约 8 秒，控制台窗口会自动关闭\n'+
+      '· 窗口关闭后，这个 Web 页面也会随之打不开\n'+
+      '· 扫描报告已落盘到 reports/ 目录，不受影响\n\n'+
+      '确认继续？');
+    if(!ok2)return;
+  }
+  try{
+    const j=await api('/api/scan/start',{mode,expr,label:$('label').value.trim(),
+      mail:$('mailChk').checked, dry_run:$('dryChk').checked,
+      verify_after:$('verifyChk').checked,
+      skip_rescan:$('skipRescanChk').checked,
+      auto_exit_after_scan:$('autoExitChk').checked});
+    toast('已启动：'+j.targets+' 台目标 × '+fmt(j.ports)+' 个端口'
+      +(j.verify_after?'（扫描后自动复核）':'')
+      +(j.skip_rescan?'（已跳过补扫）':'')
+      +(j.auto_exit_after_scan?'（完成后自动关窗）':''),'ok');
+    poll();
+  }catch(e){toast('启动失败: '+e.message,'err');}
+}
+
+/* 定向复核: 独立触发, 不必等扫描完 */
+async function runVerify(){
+  const b=$('verBtn');
+  const from=$('vFrom').value.trim();
+  const rounds=parseInt($('vRounds').value||'5',10)||5;
+  if(!confirm('将开始【定向复核】\n\n'+
+      '· 对照基线：'+(from||'default')+'\n'+
+      '· 复核轮数：'+rounds+'\n'+
+      '· 只复核「历史清单里有、上一轮没扫到」的端口\n'+
+      '· 用极低并发（单机 4 连接），刻意不触发限速\n'+
+      '· 结果写进上方实时日志，并在 reports/ 另存一份 txt\n\n'+
+      '确认开始？'))return;
+  b.disabled=true; b.innerHTML='<span class="spin"></span> 复核中…';
+  try{
+    const j=await api('/api/verify',{from,rounds});
+    toast('定向复核已启动：对照 '+(j.from||from)+'，'+j.rounds+' 轮','ok');
+    poll();
+  }catch(e){ toast('复核启动失败: '+e.message,'err'); }
+  finally{ setTimeout(()=>{b.disabled=false;b.textContent='立即定向复核';}, 2500); }
+}
+async function stopScan(){
+  try{await api('/api/scan/stop',{});toast('已请求中止','warn');}
+  catch(e){toast('中止失败: '+e.message,'err');}
+}
+/* 网络预检: 换网络后先跑, 结果直接打在日志区 */
+async function runPreflight(){
+  const b=$('preBtn'); b.disabled=true; b.innerHTML='<span class="spin"></span> 预检中…';
+  try{
+    await api('/api/preflight',{});
+    toast('预检已启动，结果见下方日志','ok');
+    poll();
+  }catch(e){ toast('预检启动失败: '+e.message,'err'); }
+  finally{ setTimeout(()=>{b.disabled=false;b.textContent='开始网络预检';}, 2500); }
+}
+
+function logCls(line){
+  if(line.includes('[!]'))return 'err';
+  if(line.includes('[!!]'))return 'warn';
+  if(line.includes('完成')||line.includes('已发送'))return 'ok';
+  return '';
+}
+function renderLogs(lines){
+  const box=$('log');
+  const atBottom=box.scrollHeight-box.scrollTop-box.clientHeight<40;
+  box.innerHTML=(lines||[]).map(l=>
+    '<div class="'+logCls(l)+'">'+l.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))+'</div>'
+  ).join('');
+  if(atBottom)box.scrollTop=box.scrollHeight;
+}
+
+async function poll(){
+  try{
+    const st=await api('/api/state');
+    const busy=st.running;
+    $('statusPill').classList.toggle('busy',busy);
+    /* 状态文案直接用后端 phase —— 它已经区分了「网络预检中 / 端口扫描中 / 复核中」,
+       不要再统一写成"扫描中", 否则跑预检和复核时会让人误以为在扫端口 */
+    $('statusTxt').textContent=busy?(st.phase||'处理中'):(st.phase||'空闲');
+    $('startBtn').disabled=busy;
+    $('stopBtn').classList.toggle('hide',!busy);
+    /* 扫描/预检/复核共用一条运行通道, 有任务在跑时其余入口一并禁用 */
+    $('preBtn').disabled=busy;
+    $('verBtn').disabled=busy;
+    $('startBtn').innerHTML=busy?'<span class="spin"></span> 扫描中':'开始扫描';
+    /* 扫描期间常驻警告 —— 实测教训: 用户关掉控制台窗口 → 进程死亡 → 77 分钟成果丢失。
+       这里至少在页面上把风险说清楚, 并在关闭/刷新时弹原生确认框拦一下。 */
+    $('winWarn').classList.toggle('hide',!busy);
+    if(busy!==WAS_BUSY)WAS_BUSY=busy;
+
+    const p=st.progress||{};
+    const fin=!!p.finishing;
+    $('progBar').style.width=(p.percent||0)+'%';
+    $('progBar').classList.toggle('finishing',fin&&busy);
+    $('sPct').textContent=(p.percent||0).toFixed(1)+'%';
+    $('sRate').textContent=fmt(p.rate)+'/s';
+    $('sOpen').textContent=fmt(p.open||0);
+    $('sElapsed').textContent=(p.elapsed||st.elapsed||0)+'s';
+    // 补扫阶段的探测量事先无法预估 —— 别再显示一个假的"预计剩余", 直接说明在补扫。
+    // (旧版本这里会一直显示 100%、剩余"—", 看起来像卡死, 实际还在正常跑补扫)
+    if(fin&&busy){
+      $('sEta').innerHTML='<span style="color:#e67e22">补扫中</span>';
+      $('sPct').innerHTML=(p.percent||0).toFixed(1)+'%<span style="font-size:12px;color:#e67e22;margin-left:4px">补扫</span>';
+    }else{
+      $('sEta').textContent=p.eta?p.eta+'s':'—';
+    }
+    renderLogs(st.logs);
+
+    if(st.last&&(!LAST||st.last.scan_time!==LAST.scan_time)){
+      LAST=st.last; renderResult();
+      $('resDot').classList.toggle('hide',!(LAST.summary&&LAST.summary.new_ports));
+    }else if(st.last){LAST=st.last;renderResult();}
+    MAIL=st.last_mail||null; if(LAST)renderMail();
+    if(st.last_error)toast('扫描出错: '+st.last_error,'err');
+  }catch(e){/* 服务重启中, 忽略 */}
+}
+
+/* ---------------- 结果 ---------------- */
+function renderResult(){
+  if(!LAST)return;
+  $('resEmpty').classList.add('hide'); $('resBody').classList.remove('hide');
+  const s=LAST.summary||{};
+  const q=LAST.quality||{};
+  const ed=LAST.expected_diff||{};
+  $('resMeta').textContent=LAST.scan_time+' ｜ 标签 '+LAST.scan_label+
+    ' ｜ 端口 '+fmt(LAST.ports_scanned)+' 个 ｜ 耗时 '+LAST.elapsed_sec+'s';
+
+  const cards=[
+    ['','扫描主机',fmt(LAST.hosts_total),'资产总数'],
+    ['c-blu','开放端口',fmt(s.open_total),''+(s.no_open_hosts||0)+' 台无开放端口'],
+    ['c-red','严重 / 高危',(s.critical_total||0)+' / '+(s.high_total||0),'需优先收敛'],
+    ['c-red','本周新增',fmt(s.new_ports),'对比上次基线'],
+    ['c-grn','本周消失',fmt(s.gone_ports),'已收敛端口'],
+    ['c-org','补扫挽回',fmt(q.rescan_recovered||0),'主扫描漏报的真实端口'],
+    ['c-org','后置补扫挽回',fmt(q.post_rescan_recovered||0),'等限速窗口过后低速重探'],
+    ['c-org','疑似漏报',((ed.missing||[]).length)+' 台','对比历史基线清单'],
+    ['c-org','存疑端口',fmt(q.unconfirmed_total||0),'复核未过, 需人工核对'],
+    ['c-org','异常 / 无响应',(s.anomaly_hosts||0)+' / '+(s.silent_hosts||0),'结果需核对'],
+  ];
+  $('resCards').innerHTML=cards.map(c=>
+    '<div class="card '+(c[0]||'')+'"><div class="k">'+c[1]+'</div><div class="v">'+c[2]+
+    '</div><div class="s">'+c[3]+'</div></div>').join('');
+
+  /* 探测质量：把 filtered 黑洞摊开, 让人看见"为什么扫不出来" */
+  if(q.probes_total){
+    const total=q.probes_total||1, pct=n=>(100*n/total).toFixed(1)+'%';
+    const rows=[
+      ['探测总量(含补扫)',fmt(total)],
+      ['开放 · SYN-ACK',fmt(q.open||0)+' ('+pct(q.open||0)+')'],
+      ['关闭 · RST',fmt(q.closed||0)+' ('+pct(q.closed||0)+')'],
+      ['无响应 · 静默丢包',fmt(q.timeout||0)+' ('+pct(q.timeout||0)+')'],
+      ['本机侧异常 errno',fmt(q.errno_total||0)],
+      ['补扫挽回开放端口',fmt(q.rescan_recovered||0)],
+      ['后置补扫挽回开放端口',fmt(q.post_rescan_recovered||0)],
+      ['后置补扫后仍无响应(业务端口)',fmt(q.post_rescan_left||0)],
+      ['存疑端口',fmt(q.unconfirmed_total||0)],
+    ];
+    $('resQBox').classList.remove('hide');
+    $('resQuality').innerHTML='<table><tbody>'+rows.map(r=>
+      '<tr><td style="color:var(--muted)">'+r[0]+'</td>'+
+      '<td style="text-align:right"><b>'+r[1]+'</b></td></tr>').join('')+
+      '</tbody></table><div class="hint" style="margin-top:10px">'+
+      '「开放」是确定性结论；「无响应」是不确定性结论 —— 可能是端口关闭、被防火墙'+
+      '静默丢弃，也可能是目标/路径对本机源 IP 做了探测限速。补扫挽回数量越多，'+
+      '说明主扫描漏报越严重。</div>';
+  } else {
+    $('resQBox').classList.add('hide');
+  }
+
+  /* 与历史基线清单对照：回答"这次是不是又漏扫了" */
+  if(ed && (ed.missing||ed.extra||ed.not_scanned||ed.hit_hosts)){
+    const mm=ed.missing||[], ex=ed.extra||[], ns=ed.not_scanned||[];
+    let h='<div class="cards" style="margin-bottom:14px">'+
+      '<div class="card c-grn"><div class="k">与历史一致</div><div class="v">'+(ed.hit_hosts||0)+
+        ' 台</div><div class="s">本次结果 == 历史期望</div></div>'+
+      '<div class="card c-org"><div class="k">疑似漏报</div><div class="v">'+mm.length+' 台 / '+
+        (ed.missing_ports||0)+' 端口</div><div class="s">历史开放过, 本次未扫到</div></div>'+
+      '<div class="card c-org"><div class="k">新增暴露面</div><div class="v">'+ex.length+' 台 / '+
+        (ed.extra_ports||0)+' 端口</div><div class="s">本次扫到, 历史没有</div></div>'+
+      '<div class="card c-blu"><div class="k">无响应未核对</div><div class="v">'+ns.length+
+        ' 台</div><div class="s">主机不可达, 无法比对</div></div>'+
+      '</div>';
+    if(mm.length){
+      h+='<div class="hint" style="margin-bottom:8px"><b>【疑似漏报】</b>历史上开放过、本次未扫到 '+
+        '—— 这不等于"已关闭", 更可能是目标侧探测限速造成的假阴性, 请换网络复核。</div>'+
+        '<table><thead><tr><th>主机</th><th>系统</th><th>未扫到的端口</th><th>本次仍扫到</th></tr></thead><tbody>'+
+        mm.map(x=>'<tr><td>'+x.ip+'</td><td>'+(x.name||'')+'</td>'+
+          '<td><b style="color:var(--org)">'+(x.ports||[]).join(' / ')+'</b></td>'+
+          '<td style="color:var(--muted)">'+((x.still_open||[]).join(' / ')||'—')+'</td></tr>').join('')+
+        '</tbody></table>';
+    }
+    if(ex.length){
+      h+='<div class="hint" style="margin:14px 0 8px"><b>【新增 / 需确认】</b>本次扫到、历史清单里没有的端口 '+
+        '—— 可能是新上线业务, 也可能是上一轮的误报。</div>'+
+        '<table><thead><tr><th>主机</th><th>系统</th><th>端口</th><th>说明</th></tr></thead><tbody>'+
+        ex.map(x=>'<tr><td>'+x.ip+'</td><td>'+(x.name||'')+'</td>'+
+          '<td><b>'+(x.ports||[]).join(' / ')+'</b></td>'+
+          '<td style="color:var(--muted)">'+(x.reason||'')+'</td></tr>').join('')+
+        '</tbody></table>';
+    }
+    if(ns.length){
+      h+='<div class="hint" style="margin:14px 0 0"><b>【无法比对】</b>以下主机本次完全无响应, '+
+        '其历史端口既不能算漏报也不能算关闭: '+
+        ns.map(x=>x.ip+' : '+(x.ports||[]).join('/')||'无').join(' ｜ ')+'</div>';
+    }
+    $('resExpected').innerHTML=h;
+    $('resEBox').classList.remove('hide');
+  } else {
+    $('resEBox').classList.add('hide');
+  }
+
+  const w=LAST.warnings||[];
+  $('resWarnBox').classList.toggle('hide',!w.length);
+  $('resWarn').innerHTML=w.map(t=>'<div class="alert warn">'+t+'</div>').join('');
+
+  const fx=LAST.must_fix||[];
+  $('fixCnt').textContent=fx.length?fx.length+' 项待处置':'无';
+  $('resFix').innerHTML=fx.length?fx.map(f=>
+    '<div class="rm '+(f.risk==='CRITICAL'?'cri':'hig')+'">'+
+    '<div class="p">'+f.port+'<br><span class="tag t-'+f.risk+'">'+
+    (f.risk==='CRITICAL'?'严重':'高')+'</span></div>'+
+    '<div style="flex:1"><div class="act">'+f.action+
+    (f.is_new?' <span class="tag t-new">本周新增</span>':'')+'</div>'+
+    '<div class="why">'+f.why+'</div></div>'+
+    '<div class="who">'+f.ip+'</div></div>').join('')
+    :'<div class="alert ok">本次未发现严重 / 高风险开放端口。</div>';
+
+  const np=LAST.new_ports||[];
+  $('newCnt').textContent=np.length?np.length+' 个':'无';
+  $('resNew').innerHTML=np.length?
+    '<table><thead><tr><th>IP</th><th>端口</th><th>服务</th><th>风险</th></tr></thead><tbody>'+
+    np.map(p=>'<tr><td class="mono">'+p.ip+'</td><td class="mono">'+p.port+'</td><td>'+
+      (p.service||'—')+'</td><td><span class="tag t-'+p.risk+'">'+
+      ({'CRITICAL':'严重','HIGH':'高','MEDIUM':'中','LOW':'低'}[p.risk]||p.risk)+
+      '</span></td></tr>').join('')+'</tbody></table>'
+    :'<div class="alert ok">与上次基线相比无新增开放端口。</div>';
+}
+/* 邮件推送状态：失败时必须在结果页留痕，不能只在一闪而过的日志里 */
+function renderMail(){
+  const box=$('resMailBox'); if(!box)return;
+  if(!MAIL){box.classList.add('hide');return;}
+  box.classList.remove('hide');
+  const ok=MAIL.ok;
+  const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  $('resMail').innerHTML=
+    '<div class="alert '+(ok?'ok':'warn')+'">'+
+    '<b>'+(ok?'✅ 邮件已发出':'⚠ 邮件未能发出')+'</b>　'+
+    esc((MAIL.recipients||[]).join(', '))+'　<span class="muted">'+esc(MAIL.time||'')+'</span>'+
+    (ok?'':'<div style="white-space:pre-wrap;margin-top:8px;line-height:1.8">'+esc(MAIL.message)+'</div>')+
+    '</div>'+
+    (ok?'':'<div class="hint" style="margin-top:6px">报告与基线已正常保存，可在上方「查看完整报告」，或到「设置」页重新测试邮件通道。</div>');
+}
+function openReport(){
+  if(LAST&&LAST.report_url)window.open(LAST.report_url,'_blank');
+  else toast('暂无报告','err');
+}
+async function openDir(which){
+  try{const j=await api('/api/open-dir',{which});toast(j.message,'ok');}
+  catch(e){toast('打开失败: '+e.message,'err');}
+}
+
+/* ---------------- 历史 ---------------- */
+async function loadHistory(){
+  try{
+    const j=await api('/api/history');
+    const h=j.history||[];
+    $('histHint').textContent=h.length+' 条记录';
+    $('histBody').innerHTML=h.length?h.map(x=>
+      '<tr><td class="mono">'+x.scan_time+'</td><td>'+x.label+'</td><td class="mono">'+
+      fmt(x.ports_scanned)+'</td><td class="mono">'+x.open_total+'</td><td class="mono">'+
+      x.critical_total+' / '+x.high_total+'</td><td class="mono" style="color:#cf2b1f">'+
+      x.new_ports+'</td><td class="mono" style="color:#0a7a4a">'+x.gone_ports+'</td>'+
+      '<td class="mono">'+(x.silent_hosts||0)+'</td><td class="mono">'+x.elapsed_sec+'s</td>'+
+      '<td>'+(x.report_file?'<a href="/report/'+x.report_file+'" target="_blank">查看</a>':'—')+
+      '</td></tr>').join(''):'<tr><td colspan="10" class="empty">暂无历史记录</td></tr>';
+    drawTrend(h);
+  }catch(e){toast('载入历史失败: '+e.message,'err');}
+}
+function drawTrend(h){
+  const box=$('trendBox');
+  if(!h||h.length<2){box.innerHTML='<div class="empty">至少需要 2 次扫描记录才能绘制趋势图。</div>';return;}
+  const pts=h.slice(0,14).reverse();
+  const W=1100,H=230,PL=56,PR=24,PT=26,PB=38;
+  const IW=W-PL-PR,IH=H-PT-PB;
+  const vals=pts.map(p=>p.open_total);
+  const top=Math.max(1,Math.ceil(Math.max(...vals)*1.3));
+  const X=i=>PL+IW*i/(pts.length-1);
+  const Y=v=>PT+IH-IH*v/top;
+  let s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="min-width:720px;height:auto">';
+  s+='<defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">'+
+     '<stop offset="0%" stop-color="#1478c9" stop-opacity=".26"/>'+
+     '<stop offset="100%" stop-color="#1478c9" stop-opacity=".02"/></linearGradient></defs>';
+  for(let k=0;k<=4;k++){
+    const v=top*k/4,y=Y(v);
+    s+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="#e6edf5"/>';
+    s+='<text x="'+(PL-10)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="#8a99aa">'+Math.round(v)+'</text>';
+  }
+  const poly=pts.map((p,i)=>X(i).toFixed(1)+','+Y(p.open_total).toFixed(1)).join(' ');
+  s+='<polygon points="'+X(0).toFixed(1)+','+Y(0)+' '+poly+' '+X(pts.length-1).toFixed(1)+','+Y(0)+'" fill="url(#tg)"/>';
+  s+='<polyline points="'+poly+'" fill="none" stroke="#0b5fa5" stroke-width="2.4" stroke-linejoin="round"/>';
+  pts.forEach((p,i)=>{
+    const c=p.new_ports>0?'#cf2b1f':'#0b5fa5';
+    s+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.open_total).toFixed(1)+'" r="'+
+       (p.new_ports>0?5:4)+'" fill="#fff" stroke="'+c+'" stroke-width="2.4"><title>'+
+       p.scan_time+'：开放 '+p.open_total+'，新增 '+p.new_ports+'</title></circle>';
+    s+='<text x="'+X(i).toFixed(1)+'" y="'+(Y(p.open_total)-12)+'" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0b5fa5">'+p.open_total+'</text>';
+    s+='<text x="'+X(i).toFixed(1)+'" y="'+(H-14)+'" text-anchor="middle" font-size="11" fill="#8a99aa">'+String(p.scan_time).slice(5,10)+'</text>';
+  });
+  s+='</svg>';
+  box.innerHTML=s;
+}
+
+/* ---------------- 设置 ---------------- */
+async function saveMail(){
+  try{
+    await api('/api/config',{mail:{
+      enabled:$('mEnabled').checked, smtp_host:$('mHost').value.trim(),
+      smtp_port:Number($('mPort').value)||465, use_ssl:$('mSsl').checked,
+      sender:$('mSender').value.trim(),
+      recipients:$('mTo').value.split(',').map(s=>s.trim()).filter(s=>s),
+      send_when_changed_only:$('mChanged').checked,
+      auth_code:$('mAuth').value
+    }});
+    $('mAuth').value='';
+    toast('邮件设置已保存','ok');
+    loadConfig();
+  }catch(e){toast('保存失败: '+e.message,'err');}
+}
+async function testMail(){
+  toast('正在发送测试邮件…');
+  try{const j=await api('/api/mail/test',{});toast(j.message,'ok');}
+  catch(e){toast('发送失败: '+e.message,'err');}
+}
+async function saveAdvanced(){
+  try{
+    await api('/api/config',{scan:{
+      concurrency:Number($('aConc').value)||4000,
+      connect_timeout:Number($('aTimeout').value)||1.2,
+      min_timeout:Number($('aMin').value)||0.5,
+      adaptive_timeout:$('aAdaptive').checked,
+      confirm_open:$('aConfirm').checked,
+      banner_grab:$('aBanner').checked
+    }});
+    toast('高级参数已保存','ok');
+  }catch(e){toast('保存失败: '+e.message,'err');}
+}
+async function loadTask(){
+  try{
+    const j=await api('/api/task');
+    const t=j.task||{};
+    if(!t.supported){$('taskState').textContent=t.message||'不支持';return;}
+    $('taskState').textContent=t.registered?('已注册 · 下次 '+(t.next_run||'—')):'未注册';
+  }catch(e){$('taskState').textContent='检测失败';}
+}
+async function regTask(){
+  try{
+    const j=await api('/api/task/register',{day:$('tDay').value,
+      time:$('tTime').value,mode:$('tMode').value});
+    toast(j.message,'ok'); loadTask();
+  }catch(e){toast('注册失败: '+e.message,'err');}
+}
+async function delTask(){
+  try{const j=await api('/api/task/remove',{});toast(j.message,'ok');loadTask();}
+  catch(e){toast('删除失败: '+e.message,'err');}
+}
+
+/* ---------------- 启动 ---------------- */
+(async function(){
+  await loadConfig();
+  await loadTargets();
+  await loadTask();
+  try{
+    const st=await api('/api/state');
+    if(st.last){LAST=st.last;renderResult();$('resDot').classList.toggle('hide',!(st.last.summary&&st.last.summary.new_ports));}
+    MAIL=st.last_mail||null; renderMail();
+    WAS_BUSY=!!st.running;
+  }catch(e){}
+  poll();
+  POLL=setInterval(poll,1000);
+})();
+/* 扫描进行中，误关/误刷新页面时弹原生确认框 —— 关掉页面不影响后台扫描,
+   但如果用户是去关那个黑色窗口, 这声提醒能拦住他。 */
+window.addEventListener('beforeunload',function(e){
+  if(WAS_BUSY){e.preventDefault();e.returnValue='扫描正在进行中，确定要离开吗？(扫描会在后台继续，但请勿关闭控制台的黑色窗口)';return e.returnValue;}
+});
+</script>
+</body>
+</html>

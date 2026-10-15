@@ -1,0 +1,44 @@
+@echo off
+setlocal
+set "DIR=%~dp0"
+set "STARTUP=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
+set "TARGET=%STARTUP%\GuvianEyeConsole.bat"
+
+if not defined PYEXE (
+    where python >nul 2>nul && set "PYEXE=python"
+)
+if not defined PYEXE (
+    where py >nul 2>nul && set "PYEXE=py"
+)
+if not defined PYEXE (
+    echo.
+    echo   [!] 未找到 Python。请先安装 Python 3.8 以上版本。
+    echo.
+    pause
+    exit /b 1
+)
+
+echo.
+echo   正在注册开机自启 ...
+echo     项目目录 : %DIR%
+echo     启动文件 : %TARGET%
+echo     解释器   : %PYEXE%
+echo.
+
+rem 生成的自启脚本内容保持纯 ASCII, 避免批处理编码问题
+> "%TARGET%" echo @echo off
+>>"%TARGET%" echo rem GuvianEye Console - silent autostart (auto-generated)
+>>"%TARGET%" echo cd /d "%DIR:~0,-1%"
+>>"%TARGET%" echo start "" /min "%PYEXE%" app.py --no-browser
+
+if exist "%TARGET%" (
+    echo   [OK] 注册完成。
+    echo        下次开机后控制台会在后台静默启动, 直接点浏览器
+    echo        http://127.0.0.1:8899 就能进, 不用再双击任何东西。
+    echo        想彻底关掉: 双击「取消开机自启.bat」。
+) else (
+    echo   [!] 注册失败 —— 可能没有权限写入启动文件夹。
+    echo       请右键本文件, 选择「以管理员身份运行」再试一次。
+)
+echo.
+pause
